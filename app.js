@@ -22,16 +22,11 @@ io.on("connection", socket => {
       // () => api.getApiAndEmit(socket),
       // 10000
       () => api.fakeMethod(socket),
-      6000
+      5000
     );
 
   socket.on("disconnect", () => console.log("Client disconnected"));
 });
-
-var randomProperty = function(obj) {
-  var keys = Object.keys(obj);
-  return obj[keys[(keys.length * Math.random()) << 0]];
-};
 
 server.listen(port, hostname, () => {
   console.log(`Server running at http://${hostname}:${port}/`);

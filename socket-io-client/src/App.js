@@ -1,15 +1,34 @@
-import React, { Component, Fragment } from "react";
+import React, { Component, Fragment, lazy,Suspense } from "react";
 import "./App.css";
 import socketClient from "socket.io-client";
 import Loader from "react-loader-spinner";
 import Pulse from "react-reveal/Pulse";
-import Fade from "react-reveal/Fade";
+import ThemeContext, {themeConfig} from './context/ThemeContext'
 import "semantic-ui-css/semantic.min.css";
+
+import Modal from './Modal'
+
+
+
+ const Image = lazy( () => {
+  return new Promise(resolve => setTimeout(resolve, 2000)).then(
+    // () =>  Math.floor(Math.random() ) >= 4  ? import("./Image")   : import("./Image")
+    (resolve) =>   import("./Image")
+  );
+
+});
+
 
 const topcorner = {
   position: "absolute",
   top: 10,
   right: 30
+};
+
+const topleftcorner = {
+   position: "absolute",
+  top: 40,
+  left: 30
 };
 
 class App extends Component {
@@ -19,7 +38,9 @@ class App extends Component {
       data: false,
       endpoint: "http://127.0.0.1:4001",
       currentTime: "",
-      isChanged: 0
+      isChanged: 0,
+      theme: 'dark',
+      showModal: false
     };
   }
 
@@ -29,10 +50,17 @@ class App extends Component {
     socket.on("FromAPI", data => this.setState({ data }));
   }
 
+
+  
+
   componentDidUpdate(previousProps, previousState) {
     if (previousState.isChanged === this.state.isChanged) {
       this.setState({ isChanged: this.state.isChanged + 1 });
+      
     }
+
+   
+  
   }
 
   convertTemp = temp => {
@@ -51,18 +79,90 @@ class App extends Component {
     });
   };
 
+  toggleTheme = () => {
+    this.setState({
+      theme: this.state.theme === "dark" ? "light" : "dark"
+    });
+  };
+
+  onClose=()=>{
+    this.setState({showModal: !this.state.showModal})
+  }
+
   render() {
-    const { data, isChanged } = this.state;
+    const { data, isChanged , theme: layout, showModal} = this.state;
+    const styles = layout === 'light' ?  {backgroundColor: themeConfig[layout].bodybg,  color: themeConfig[layout].color}:  {  color: themeConfig[layout].color}
+
+    const modal = this.state.showModal ? (
+      <Modal>
+      <div className="modal">
+        <div>
+          With a portal, we can render content into a different
+          part of the DOM, as if it were any other React child.
+        </div>
+        This is being rendered inside the #modal-container div.
+        <button onClick={this.onClose}>Hide modal</button>
+        <div className="massive ui toggle checkbox">
+        <input type="checkbox" checked={layout.type === 'light'} onChange={ this.toggleTheme} />
+  <label style={{color: themeConfig[layout].color}}>Theme: {layout}</label>
+</div>
+      </div>
+    </Modal>
+    ) : null;
+
+
+
+
 
     return (
+
+      <ThemeContext.Provider  value={{
+        type: this.state.theme,
+        config: themeConfig[this.state.theme]
+      }}>
+          <ThemeContext.Consumer>
+        {
+          theme => (
+
       <div className="App">
-        <header className="App-header">
+ 
+ 
+
+        <header style={{ backgroundColor: theme.config.bodybg, color: theme.config.color}} className="App-header">
+        {modal}
+        <div style={topleftcorner}>
+      
+<div className="massive ui toggle checkbox">
+        <input type="checkbox" checked={theme.type === 'light'} onChange={ this.toggleTheme} />
+  <label style={{color: theme.config.color}}>Theme: {layout}</label>
+</div>
+              </div>
+
+
+
           {data ? (
             <Fragment>
-              <Fade>
-              <img
+            {modal}
+
+            
+
+
+
+            
+             <button className={theme.config.btn} onClick={this.onClose}>
+
+       
+
+        
+<label style={{color: theme.config.color}}>Click for Modal view</label>
+</button>
+
+          <Suspense fallback= {<Loader type="Watch" color="red" height="150" width="150" />}> 
+                <Image img={data.icon} animation={theme.config.animation}/>
+                </Suspense>
+              {/* <img
                 src={`https://darksky.net/images/weather-icons/${data.icon}.png`} alt ='test'
-              />
+              /> */}
 
               <h1 style={topcorner}>
                 Updated time:{" "}
@@ -70,7 +170,8 @@ class App extends Component {
                   <Pulse spy={isChanged}>{data.currentTime} </Pulse>
                 </div>
               </h1>
-              <div className="ui black mini message">
+            
+              <div className="ui black mini message" style={styles}>
                 <p>
                   {" "}
                   The temperature in Kraków is:{" "}
@@ -87,20 +188,24 @@ class App extends Component {
                 </p>
                 <p>
                   The summary is:{" "}
-                  <div style={{ color: "red" }}>{data.summary} </div>
+                  <p style={{ color: "red" }}>{data.summary} </p>
                 </p>
 
                 {this.setDataToFalse}
               </div>
-              </Fade>
+            
             </Fragment>
           ) : (
             <p>
-              <Loader type="Puff" color="#00BFFF" height="100" width="100" />
+              <Loader type="Rings" color="#00BFFF" height="100" width="100" />
             </p>
           )}
         </header>
       </div>
+       )
+      }
+    </ThemeContext.Consumer>
+      </ThemeContext.Provider>
     );
   }
 }
